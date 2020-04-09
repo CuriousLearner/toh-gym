@@ -16,9 +16,11 @@ import pandas as pd
 import random
 from itertools import permutations as perm
 
+
 class TohEnv(discrete.DiscreteEnv):
     """Tower of hanoi environment."""
-    metadata = {'render.modes': ['human', 'ansi']}
+
+    metadata = {"render.modes": ["human", "ansi"]}
 
     def apply_action(self, s, a):
         """Apply a move and generate the new state, if move is invalid, return None."""
@@ -61,7 +63,9 @@ class TohEnv(discrete.DiscreteEnv):
                 break
         return states
 
-    def __init__(self, initial_state=((2, 1, 0), (), ()), goal_state=((), (), (2, 1, 0)), noise=0):
+    def __init__(
+        self, initial_state=((2, 1, 0), (), ()), goal_state=((), (), (2, 1, 0)), noise=0
+    ):
 
         self.initial_state = initial_state
         assert noise < 1.0, "noise must be between 0 and 1"
@@ -83,8 +87,10 @@ class TohEnv(discrete.DiscreteEnv):
             self.inverse_mapping[self.all_states[i]] = i
 
         ## Generating probability matrix
-        self.P = {s: {a: [] for a in range(len(self.action_list))}
-                  for s in range(len(self.all_states))}
+        self.P = {
+            s: {a: [] for a in range(len(self.action_list))}
+            for s in range(len(self.all_states))
+        }
 
         # For stochastic environment
         self.noise = noise
@@ -97,7 +103,8 @@ class TohEnv(discrete.DiscreteEnv):
                     if noise == 0:
                         done = False
                         new_state = self.apply_action(
-                            self.state_mapping[s], self.action_list[a])
+                            self.state_mapping[s], self.action_list[a]
+                        )
                         rew = 0
                         if new_state == None:
                             new_state = self.state_mapping[s]
@@ -107,14 +114,14 @@ class TohEnv(discrete.DiscreteEnv):
                         if new_state == self.goal_state:
                             rew = 100
                             done = True
-                        li.append(
-                            (1, self.inverse_mapping[new_state], rew, done))
+                        li.append((1, self.inverse_mapping[new_state], rew, done))
                     else:
-                        for b in [(a, 1-noise), (random.choice(range(6)), noise)]:
+                        for b in [(a, 1 - noise), (random.choice(range(6)), noise)]:
                             a, prob = b[0], b[1]
                             done = False
                             new_state = self.apply_action(
-                                self.state_mapping[s], self.action_list[a])
+                                self.state_mapping[s], self.action_list[a]
+                            )
                             rew = 0
                             if new_state == None:
                                 new_state = self.state_mapping[s]
@@ -125,27 +132,38 @@ class TohEnv(discrete.DiscreteEnv):
                                 rew = 100
                                 done = True
                             li.append(
-                                (prob, self.inverse_mapping[new_state], rew, done))
+                                (prob, self.inverse_mapping[new_state], rew, done)
+                            )
 
-        self.isd = np.array([self.is_state_valid(self.state_mapping[s])
-                             for s in range(len(self.all_states))]).astype('float').ravel()
+        self.isd = (
+            np.array(
+                [
+                    self.is_state_valid(self.state_mapping[s])
+                    for s in range(len(self.all_states))
+                ]
+            )
+            .astype("float")
+            .ravel()
+        )
         self.isd /= self.isd.sum()
 
         super(TohEnv, self).__init__(self.nS, self.nA, self.P, self.isd)
 
-    def render(self, mode='human'):
-        outfile = StringIO() if mode == 'ansi' else sys.stdout
+    def render(self, mode="human"):
+        outfile = StringIO() if mode == "ansi" else sys.stdout
 
         currState = [list(s) for s in self.state_mapping[self.s]]
         ringN = np.max(self.initial_state)[0]
         poleN = len(self.initial_state)
-        pole = ' ' * ringN + '||' + ' ' * ringN
+        pole = " " * ringN + "||" + " " * ringN
         rings = []
         for r in range(1, ringN + 1):
-            rings.append(' ' * (ringN - r) + '~' * r + '||' + '~' * r + ' ' * (ringN - r))
+            rings.append(
+                " " * (ringN - r) + "~" * r + "||" + "~" * r + " " * (ringN - r)
+            )
 
         rings = np.array(rings)
-        floor = '\u203e' * (ringN * 2 + 4)
+        floor = "\u203e" * (ringN * 2 + 4)
         vis = []
         for p in currState:
             p = np.array(p) - 1
@@ -155,14 +173,20 @@ class TohEnv(discrete.DiscreteEnv):
                 temp = rings[p[::-1]]
                 vis.append([pole] * (ringN - temp.size + 1) + temp.tolist())
 
-        vis = ''.join([''.join(i) + '\n' for i in np.array(vis).T.tolist()]) + floor * poleN + '\n'
+        vis = (
+            "".join(["".join(i) + "\n" for i in np.array(vis).T.tolist()])
+            + floor * poleN
+            + "\n"
+        )
 
         if self.lastaction is not None:
-            outfile.write('Pole {} to Pole {}\n'.format(*(self.action_list[self.lastaction]) + 1))
+            outfile.write(
+                "Pole {} to Pole {}\n".format(*(self.action_list[self.lastaction]) + 1)
+            )
         else:
-            outfile.write('\n')
+            outfile.write("\n")
         outfile.write(vis)
 
-        if mode != 'human':
+        if mode != "human":
             with closing(outfile):
                 return outfile.getvalue()
