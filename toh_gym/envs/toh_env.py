@@ -61,11 +61,11 @@ class TohEnv(discrete.DiscreteEnv):
                 break
         return states
 
-    def __init__(self, poles=3, rings=3, noise=0):
+    def __init__(self, initial_state=((2, 1, 0), (), ()), goal_state=((), (), (2, 1, 0)), noise=0):
 
-        self.initial_state = tuple([tuple(range(rings, 0, -1))] + [()] * (poles - 1))
+        self.initial_state = initial_state
         assert noise < 1.0, "noise must be between 0 and 1"
-        self.goal_state = tuple([()] * (poles - 1) + [tuple(range(rings, 0, -1))])
+        self.goal_state = goal_state
 
         self.action_list = np.array(list(perm(range(poles), 2)))
 
