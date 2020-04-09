@@ -2,6 +2,7 @@
 # coding: utf-8
 
 # # Tower of Hanoi
+# Taken and modified from https://github.com/xadahiya/toh-gym
 import sys
 from contextlib import closing
 
@@ -13,7 +14,7 @@ from gym.envs.toy_text import discrete
 import time
 import pandas as pd
 import random
-
+from itertools import permutations as perm
 
 class TohEnv(discrete.DiscreteEnv):
     """Tower of hanoi environment."""
@@ -42,10 +43,10 @@ class TohEnv(discrete.DiscreteEnv):
                 return False
         return True
 
-    def generate_all_states(self, initial_state):
+    def generate_all_states(self):
         """Generate all the states for MDP, total number of states = number_of_poles**number_of_disks"""
         states = []
-        states.append(initial_state)
+        states.append(self.initial_state)
 
         while True:
             old_len = len(states)
@@ -60,16 +61,15 @@ class TohEnv(discrete.DiscreteEnv):
                 break
         return states
 
-    def __init__(self, initial_state=((2, 1, 0), (), ()), goal_state=((), (), (2, 1, 0)), noise=0):
+    def __init__(self, poles=3, rings=3, noise=0):
 
-        self.initial_state = initial_state
+        self.initial_state = tuple([tuple(range(rings, 0, -1))] + [()] * (poles - 1))
         assert noise < 1.0, "noise must be between 0 and 1"
-        self.goal_state = goal_state
+        self.goal_state = tuple([()] * (poles - 1) + [tuple(range(rings, 0, -1))])
 
-        self.action_list = [(0, 1), (0, 2), (1, 0),
-                            (1, 2), (2, 0), (2, 1)]
+        self.action_list = np.array(list(perm(range(poles), 2)))
 
-        self.all_states = self.generate_all_states(initial_state)
+        self.all_states = self.generate_all_states()
 
         self.nS = len(self.all_states)
         self.nA = len(self.action_list)
@@ -132,3 +132,37 @@ class TohEnv(discrete.DiscreteEnv):
         self.isd /= self.isd.sum()
 
         super(TohEnv, self).__init__(self.nS, self.nA, self.P, self.isd)
+
+    def render(self, mode='human'):
+        outfile = StringIO() if mode == 'ansi' else sys.stdout
+
+        currState = [list(s) for s in self.state_mapping[self.s]]
+        ringN = np.max(self.initial_state)[0]
+        poleN = len(self.initial_state)
+        pole = ' ' * ringN + '||' + ' ' * ringN
+        rings = []
+        for r in range(1, ringN + 1):
+            rings.append(' ' * (ringN - r) + '~' * r + '||' + '~' * r + ' ' * (ringN - r))
+
+        rings = np.array(rings)
+        floor = '\u203e' * (ringN * 2 + 4)
+        vis = []
+        for p in currState:
+            p = np.array(p) - 1
+            if p.size == 0:
+                vis.append([pole] * (ringN + 1))
+            else:
+                temp = rings[p[::-1]]
+                vis.append([pole] * (ringN - temp.size + 1) + temp.tolist())
+
+        vis = ''.join([''.join(i) + '\n' for i in np.array(vis).T.tolist()]) + floor * poleN + '\n'
+
+        if self.lastaction is not None:
+            outfile.write('Pole {} to Pole {}\n'.format(*(self.action_list[self.lastaction]) + 1))
+        else:
+            outfile.write('\n')
+        outfile.write(vis)
+
+        if mode != 'human':
+            with closing(outfile):
+                return outfile.getvalue()
