@@ -71,7 +71,7 @@ class TohEnv(discrete.DiscreteEnv):
         assert noise < 1.0, "noise must be between 0 and 1"
         self.goal_state = goal_state
 
-        self.action_list = np.array(list(perm(range(poles), 2)))
+        self.action_list = [(0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1)]
 
         self.all_states = self.generate_all_states()
 
